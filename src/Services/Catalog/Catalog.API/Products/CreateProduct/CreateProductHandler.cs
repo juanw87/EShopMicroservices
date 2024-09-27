@@ -1,17 +1,33 @@
-﻿using BuildingBlocks.CQRS;
-using Catalog.API.Models;
-using MediatR;
-
-namespace Catalog.API.Products.CreateProduct
+﻿namespace Catalog.API.Products.CreateProduct
 {
     public record CreateProductCommand(string Name, List<string> Category, string Description, string ImageFile, decimal Price)
         : ICommand<CreateProductResult>;
     public record CreateProductResult(Guid Id);
-    internal class CreateProductCommandHandler : ICommandHandler<CreateProductCommand, CreateProductResult>
+
+    public class CreateProductValidator : AbstractValidator<CreateProductCommand>
+    {
+        public CreateProductValidator() 
+        {
+            RuleFor(x => x.Name).NotEmpty().WithMessage("Name is required");
+            RuleFor(x => x.Category).NotEmpty().WithMessage("Name is required");
+            RuleFor(x => x.ImageFile).NotEmpty().WithMessage("Name is required");
+            RuleFor(x => x.Price).GreaterThan(0).WithMessage("Price must be greater than 0");
+        }
+    }
+
+    internal class CreateProductCommandHandler(IDocumentSession session, IValidator<CreateProductCommand> validator) 
+        : ICommandHandler<CreateProductCommand, CreateProductResult>
     {
         public async Task<CreateProductResult> Handle(CreateProductCommand command, CancellationToken cancellationToken)
         {
             // Business logic to create a product
+
+            var result = await validator.ValidateAsync(command, cancellationToken);
+            var errors = result.Errors.Select(x => x.ErrorMessage).ToList();
+            if (errors.Any())
+            {
+                throw new ValidationException(errors.FirstOrDefault());
+            }
 
             var product = new Product
             {
@@ -22,8 +38,11 @@ namespace Catalog.API.Products.CreateProduct
                 Price = command.Price
             };
 
+            session.Store(product);
+            await session.SaveChangesAsync(cancellationToken);
 
-            return new CreateProductResult(Guid.NewGuid());
+
+            return new CreateProductResult(product.Id);
         }
     }
 }
