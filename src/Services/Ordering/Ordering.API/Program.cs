@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services
-    .AddAplicationServices()
+    .AddAplicationServices(builder.Configuration)
     .AddInfraestructureServices(builder.Configuration)
     .AddApiServices(builder.Configuration);
 

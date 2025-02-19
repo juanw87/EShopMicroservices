@@ -9,3 +9,5 @@ global using FluentValidation;
 global using Mapster;
 global using Marten;
 global using MediatR;
+global using Basket.API.Basket.Data.Dto;
+global using BuildingBlocks.Exceptions.Handler;
